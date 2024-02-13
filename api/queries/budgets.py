@@ -50,23 +50,24 @@ class BudgetQueries:
                             ytd_budget,
                             ytd_spend,
                             ytd_remaining_budget)
-                        VALUES (%s, %s, %s,
+                        SELECT
+                            p.property_id,
+                            p.food_fee,
+                            p.total_members,
+                            (p.food_fee * p.total_members)::float8::numeric::money,  -- monthly_budget
                             %s::float8::numeric::money,
                             %s::float8::numeric::money,
+                            ((p.food_fee * p.total_members) * 12)::float8::numeric::money,  -- ytd_budget
                             %s::float8::numeric::money,
-                            %s::float8::numeric::money,
-                            %s::float8::numeric::money,
-                            %s::float8::numeric::money)
+                            %s::float8::numeric::money
+                        FROM properties p
+                        WHERE p.property_id = %s
                         RETURNING budget_id;
                         """,
                         [
                             budget.property,
-                            budget.food_fee,
-                            budget.total_members,
-                            budget.monthly_budget,
                             budget.monthly_spend,
                             budget.monthly_remaining,
-                            budget.ytd_budget,
                             budget.ytd_spend,
                             budget.ytd_remaining_budget
                         ]
@@ -144,10 +145,10 @@ class BudgetQueries:
                         UPDATE budgets
                         SET food_fee = %s,
                             total_members = %s,
-                            monthly_budget = %s::float8::numeric::money,
+                            monthly_budget = (%s * %s)::float8::numeric::money,  -- monthly_budget
                             monthly_spend = %s::float8::numeric::money,
                             monthly_remaining = %s::float8::numeric::money,
-                            ytd_budget = %s::float8::numeric::money,
+                            ytd_budget = ((%s * %s) * 12)::float8::numeric::money,  -- ytd_budget
                             ytd_spend = %s::float8::numeric::money,
                             ytd_remaining_budget = %s::float8::numeric::money
                         WHERE budget_id = %s
@@ -156,10 +157,12 @@ class BudgetQueries:
                         [
                             budget.food_fee,
                             budget.total_members,
-                            budget.monthly_budget,
+                            budget.food_fee,
+                            budget.total_members,
                             budget.monthly_spend,
                             budget.monthly_remaining,
-                            budget.ytd_budget,
+                            budget.food_fee,
+                            budget.total_members,
                             budget.ytd_spend,
                             budget.ytd_remaining_budget,
                             budget_id

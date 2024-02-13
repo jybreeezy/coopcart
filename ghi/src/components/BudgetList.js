@@ -3,52 +3,67 @@ import { useAuthContext } from "@galvanize-inc/jwtdown-for-react";
 import Nav from "../components/Nav";
 import "../style.css";
 
-const BudgetList = () => {
-    const [budgets, setBudgets] = useState([]);
+const PropertyList = () => {
+    const [properties, setProperties] = useState([]);
+    const [monthlySpend, setMonthlySpend] = useState(0);
+    // const [ytdSpend, setYtdSpend] = useState(0);
     const { token } = useAuthContext();
-    const fetchBudgets = async () => {
+    const fetchProperties = async () => {
                 try {
-                    const response = await fetch(`${process.env.REACT_APP_API_HOST}/budgets`, {
+                    const response = await fetch(`${process.env.REACT_APP_API_HOST}/property/1`, {
                         credentials: "include",
                     });
                     const data = await response.json();
 
-                    setBudgets(data);
+                    setProperties(data);
                 } catch (error) {
                     console.error("Error getting budgets:", error);
                 }
             };
+
+    const fetchMonthlySpend = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_HOST}/orders/monthly_spend`, {
+                credentials: "include",
+            });
+            const data = await response.json();
+
+            setMonthlySpend(data.monthly_spend);
+        } catch (error) {
+            console.error("Error getting monthly spend:", error);
+        }
+    };
+
     useEffect(() => {
-        fetchBudgets();
+        fetchProperties();
+        fetchMonthlySpend();
+        // fetchYtdSpend();
     }, [token]);
 
     return (
+        console.log(monthlySpend),
         <>
         <Nav />
         <div>
-            <h1>Budget List</h1>
-            {budgets.length === 0 ? (
-                <p>No budgets available</p>
-            ) : (
-                <ul>
-                    {budgets.map((budget) => (
-                        <li key={budget.budget_id}>
-                            <h2>Property: {budget.property}</h2>
-                            <p>Food Fee: {budget.food_fee}</p>
-                            <p>Total Members: {budget.total_members}</p>
-                            <p>Monthly Budget: {budget.monthly_budget}</p>
-                            <p>Monthly Spend: {budget.monthly_spend}</p>
-                            <p>Monthly Remaining: {budget.monthly_remaining}</p>
-                            <p>YTD Budget: {budget.ytd_budget}</p>
-                            <p>YTD Spend: {budget.ytd_spend}</p>
-                            <p>YTD Remaining Budget: {budget.ytd_remaining_budget}</p>
-                        </li>
-                    ))}
-                </ul>
-            )}
+            <h1>Budget</h1>
+        {properties ? (
+            <div>
+                <h2>Property: {properties.property_name}</h2>
+                <p>Food Fee: ${properties.food_fee}</p>
+                <p>Total Members: {properties.total_members}</p>
+                <p>Monthly Budget: ${properties.food_fee * properties.total_members}</p>
+                <p>Monthly Spend: ${monthlySpend}</p>
+                <p>Monthly Remaining: ${properties.monthly_remaining}</p>
+                <p>YTD Budget: ${properties.food_fee * properties.total_members * 12}</p>
+                <p>YTD Spend: ${properties.ytd_spend}</p>
+                <p>YTD Remaining Budget: ${properties.ytd_remaining_budget}</p>
+            </div>
+        ) : (
+            <p>No budgets available</p>
+        )}
         </div>
         </>
     );
 };
 
-export default BudgetList;
+export default PropertyList;

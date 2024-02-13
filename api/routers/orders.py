@@ -30,3 +30,11 @@ def update_order(order_id: int, order: OrderIn, repo: OrderRepository = Depends(
 def get_one(order_id: int, repo: OrderRepository = Depends(),
             account_data: dict = Depends(authenticator.get_current_account_data)):
     return repo.get_one(order_id)
+
+
+@router.get("/orders/monthly_spend")
+def get_monthly_spend(repo: OrderRepository = Depends(), account_data: dict = Depends(authenticator.get_current_account_data)):
+    monthly_spend = repo.get_monthly_spend()
+    if isinstance(monthly_spend, Error):
+        raise HTTPException(status_code=400, detail=monthly_spend.message)
+    return {"monthly_spend": monthly_spend}

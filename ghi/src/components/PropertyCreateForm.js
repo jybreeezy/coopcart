@@ -54,7 +54,7 @@ function PropertyCreateForm() {
 
   useEffect(() => {
     getUser(setUserInfo, token);
-  }, [token]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
