@@ -140,3 +140,81 @@ class PropertyQueries:
         except Exception as e:
             print(e)
             return {"message": "Could not get all properties"}
+
+    def get_property(self, property_id: int) -> Union[PropertyOut, Error]:
+        return self.get(property_id)
+
+    def get_monthly_spend(self, property_id: int) -> Union[float, Error]:
+        try:
+            with pool.connection() as conn:
+                with conn.cursor(row_factory=dict_row) as db:
+                    current_month = datetime.now().month
+                    current_year = datetime.now().year
+                    db.execute(
+                        """
+                        SELECT SUM(purchased_price * purchased_quantity) as monthly_spend
+                        FROM orders
+                        WHERE property_id = %s AND EXTRACT(MONTH FROM created_date) = %s AND EXTRACT(YEAR FROM created_date) = %s
+                        """,
+                        (property_id, current_month, current_year)
+                    )
+                    result = db.fetchone()
+                    return result['monthly_spend'] if result else 0
+        except Exception as e:
+            return Error(message=str(e))
+
+    def get_yearly_spend(self, property_id: int) -> Union[float, Error]:
+        try:
+            with pool.connection() as conn:
+                with conn.cursor(row_factory=dict_row) as db:
+                    current_year = datetime.now().year
+                    db.execute(
+                        """
+                        SELECT SUM(purchased_price * purchased_quantity) as yearly_spend
+                        FROM orders
+                        WHERE property_id = %s AND EXTRACT(YEAR FROM created_date) = %s
+                        """,
+                        (property_id, current_year,)
+                    )
+                    result = db.fetchone()
+                    return result['yearly_spend'] if result else 0
+        except Exception as e:
+            return Error(message=str(e))
+
+    def get_total_spend(self, property_id: int) -> Union[float, Error]:
+        try:
+            with pool.connection() as conn:
+                with conn.cursor(row_factory=dict_row) as db:
+                    db.execute(
+                        """
+                        SELECT SUM(purchased_price * purchased_quantity) as total_spend
+                        FROM orders
+                        WHERE property_id = %s
+                        """,
+                        (property_id,)
+                    )
+                    result = db.fetchone()
+                    return result['total_spend'] if result else 0
+        except Exception as e:
+            return Error(message=str(e))
+
+
+    def create_budget(self, property_id):
+        property = self.get_property(property_id)
+        if not property:
+            return None
+
+        monthly_budget = property.food_fee * property.total_members
+        yearly_budget = monthly_budget * 12
+
+        monthly_spend = self.get_monthly_spend(property_id)
+        yearly_spend = self.get_yearly_spend(property_id)
+        total_spend = self.get_total_spend(property_id)
+
+        return {
+            'monthly_budget': monthly_budget,
+            'yearly_budget': yearly_budget,
+            'monthly_spend': monthly_spend,
+            'yearly_spend': yearly_spend,
+            'total_spend': total_spend
+    }

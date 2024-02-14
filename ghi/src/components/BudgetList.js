@@ -6,8 +6,10 @@ import "../style.css";
 const PropertyList = () => {
     const [properties, setProperties] = useState([]);
     const [monthlySpend, setMonthlySpend] = useState(0);
-    // const [ytdSpend, setYtdSpend] = useState(0);
     const { token } = useAuthContext();
+    const [monthlyBudget, setMonthlyBudget] = useState(0);
+    const [yearlyBudget, setYearlyBudget] = useState(0);
+    const [yearlySpend, setYearlySpend] = useState(0);
     const fetchProperties = async () => {
                 try {
                     const response = await fetch(`${process.env.REACT_APP_API_HOST}/property/1`, {
@@ -21,42 +23,48 @@ const PropertyList = () => {
                 }
             };
 
-    const fetchMonthlySpend = async () => {
+
+    const fetchBudget = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_HOST}/orders/monthly_spend`, {
+            const response = await fetch(`${process.env.REACT_APP_API_HOST}/property/1/budget`, {
                 credentials: "include",
             });
             const data = await response.json();
 
-            setMonthlySpend(data.monthly_spend);
+            if (data.error) {
+                console.error("Error getting budget:", data.error);
+            } else {
+                setMonthlyBudget(data.monthly_budget);
+                setYearlyBudget(data.yearly_budget);
+                setMonthlySpend(data.monthly_spend);
+                setYearlySpend(data.yearly_spend);
+            }
         } catch (error) {
-            console.error("Error getting monthly spend:", error);
+            console.error("Error getting budget:", error);
         }
     };
 
     useEffect(() => {
         fetchProperties();
-        fetchMonthlySpend();
-        // fetchYtdSpend();
+        fetchBudget();
     }, [token]);
 
     return (
-        console.log(monthlySpend),
         <>
         <Nav />
         <div>
             <h1>Budget</h1>
         {properties ? (
             <div>
-                <h2>Property: {properties.property_name}</h2>
+               <h2>Property: {properties.property_name}</h2>
                 <p>Food Fee: ${properties.food_fee}</p>
                 <p>Total Members: {properties.total_members}</p>
-                <p>Monthly Budget: ${properties.food_fee * properties.total_members}</p>
+                <p>Monthly Budget: ${monthlyBudget}</p>
                 <p>Monthly Spend: ${monthlySpend}</p>
-                <p>Monthly Remaining: ${properties.monthly_remaining}</p>
-                <p>YTD Budget: ${properties.food_fee * properties.total_members * 12}</p>
-                <p>YTD Spend: ${properties.ytd_spend}</p>
-                <p>YTD Remaining Budget: ${properties.ytd_remaining_budget}</p>
+                <p>Monthly Remaining: ${monthlyBudget - monthlySpend}</p>
+                <p>YTD Budget: ${yearlyBudget}</p>
+                <p>YTD Spend: ${yearlySpend}</p>
+                <p>YTD Remaining Budget: ${yearlyBudget - yearlySpend}</p>
             </div>
         ) : (
             <p>No budgets available</p>
