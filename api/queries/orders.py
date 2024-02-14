@@ -204,23 +204,3 @@ class OrderRepository:
             return OrderOut(**old_data)
         except Exception as e:
             print(e)
-
-    def get_monthly_spend(self) -> Union[float, Error]:
-        try:
-            with pool.connection() as conn:
-                with conn.cursor() as db:
-                    current_month = datetime.now().month
-                    current_year = datetime.now().year
-                    db.execute(
-                        """
-                        SELECT SUM(purchased_price * purchased_quantity) as monthly_spend
-                        FROM orders
-                        WHERE EXTRACT(MONTH FROM created_date) = %s
-                        AND EXTRACT(YEAR FROM created_date) = %s
-                        """,
-                        (current_month, current_year)
-                    )
-                    result = db.fetchone()
-                    return result['monthly_spend'] if result else 0
-        except Exception as e:
-            return Error(message=str(e))
