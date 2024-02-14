@@ -152,9 +152,10 @@ class PropertyQueries:
                     current_year = datetime.now().year
                     db.execute(
                         """
-                        SELECT SUM(purchased_price * purchased_quantity) as monthly_spend
-                        FROM orders
-                        WHERE property_id = %s AND EXTRACT(MONTH FROM created_date) = %s AND EXTRACT(YEAR FROM created_date) = %s
+                        SELECT SUM(o.purchased_price * o.purchased_quantity) as monthly_spend
+                        FROM orders o
+                        JOIN users u ON o.requestor = u.user_id
+                        WHERE u.property = %s AND EXTRACT(MONTH FROM created_date) = %s AND EXTRACT(YEAR FROM created_date) = %s
                         """,
                         (property_id, current_month, current_year)
                     )
@@ -170,9 +171,10 @@ class PropertyQueries:
                     current_year = datetime.now().year
                     db.execute(
                         """
-                        SELECT SUM(purchased_price * purchased_quantity) as yearly_spend
-                        FROM orders
-                        WHERE property_id = %s AND EXTRACT(YEAR FROM created_date) = %s
+                        SELECT SUM(o.purchased_price * o.purchased_quantity) as yearly_spend
+                        FROM orders o
+                        JOIN users u ON o.requestor = u.user_id
+                        WHERE u.property = %s AND EXTRACT(YEAR FROM created_date) = %s
                         """,
                         (property_id, current_year,)
                     )
@@ -188,8 +190,9 @@ class PropertyQueries:
                     db.execute(
                         """
                         SELECT SUM(purchased_price * purchased_quantity) as total_spend
-                        FROM orders
-                        WHERE property_id = %s
+                        FROM orders o
+                        JOIN users u ON o.requestor = u.user_id
+                        WHERE u.property = %s
                         """,
                         (property_id,)
                     )
@@ -201,20 +204,28 @@ class PropertyQueries:
 
     def create_budget(self, property_id):
         property = self.get_property(property_id)
-        if not property:
-            return None
-
-        monthly_budget = property.food_fee * property.total_members
-        yearly_budget = monthly_budget * 12
+        if isinstance(property, Error):
+            return property
 
         monthly_spend = self.get_monthly_spend(property_id)
+        if isinstance(monthly_spend, Error):
+            return monthly_spend
+
         yearly_spend = self.get_yearly_spend(property_id)
+        if isinstance(yearly_spend, Error):
+            return yearly_spend
+
         total_spend = self.get_total_spend(property_id)
+        if isinstance(total_spend, Error):
+            return total_spend
+
+        monthly_budget = float(property.food_fee * property.total_members)
+        yearly_budget = float(monthly_budget * 12)
 
         return {
             'monthly_budget': monthly_budget,
             'yearly_budget': yearly_budget,
-            'monthly_spend': monthly_spend,
-            'yearly_spend': yearly_spend,
-            'total_spend': total_spend
-    }
+            'monthly_spend': float(monthly_spend.replace('$', '').replace(',', '')) if monthly_spend else 0.0,
+            'yearly_spend': float(yearly_spend.replace('$', '').replace(',', '')) if yearly_spend else 0.0,
+            'total_spend': float(total_spend.replace('$', '').replace(',', '')) if total_spend else 0.0
+        }

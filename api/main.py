@@ -5,7 +5,7 @@ from routers import users, property, brands, vendors, manager, food_items, budge
 
 import os
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 app.include_router(authenticator.router)
 app.include_router(brands.router)

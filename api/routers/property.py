@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, HTTPException
 from queries.property import PropertyIn, PropertyOut, PropertyOutSignup, PropertyQueries, Error
 from typing import Union, List, Dict
 from authenticator import authenticator
+from pydantic import ValidationError
 
 router = APIRouter()
 
@@ -38,9 +39,12 @@ def get_all(
 
 
 @router.get("/property/{property_id}/budget", response_model=Union[Dict[str, float], Error])
-def get_budget(property_id: int, repo: PropertyQueries = Depends(),
+async def get_budget(property_id: int, repo: PropertyQueries = Depends(),
                account_data: dict = Depends(authenticator.get_current_account_data)):
-    budget = repo.create_budget(property_id)
-    if not budget:
-        return Error(message="Property not found")
-    return budget
+    try:
+        budget = repo.create_budget(property_id)
+        if not budget:
+            return Error(message="Property not found")
+        return budget
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
